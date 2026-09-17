@@ -40,6 +40,7 @@
     .result-fill { height:100%; border-radius:10px; }
     .result-meta { text-align:right; color:#65717d; font-size:.76rem; }
     .level { color:#fff; border-radius:10px; padding:10px 12px; margin-top:20px; font-weight:700; }
+    .level-group.is-hidden { display:none; }
     .card { border:0; border-radius:14px; box-shadow:0 2px 8px #0001; }
     .muted { color:#6c757d; font-size:.9rem; }
   </style>
@@ -104,9 +105,9 @@ Tuntas L1+L2+L3 → Level 4</div><button class="btn btn-primary w-100 mt-3" oncl
     user = data.identities[i]; answers = {};
     const box = document.getElementById('checklist'); box.innerHTML = '';
     data.levels.forEach(function (level) {
-      const heading = document.createElement('div'); heading.className = 'level';
-      heading.style.background = level.color; heading.textContent = 'Level ' + level.id + ' — ' + level.name;
-      box.appendChild(heading);
+      const group = document.createElement('div');
+      group.className = 'level-group' + (level.id > 1 ? ' is-hidden' : '');
+      group.dataset.level = level.id;
       data.items.filter(function (item) { return item.level === level.id; }).forEach(function (item) {
         const label = document.createElement('label'); label.className = 'check';
         const cb = document.createElement('input'); cb.type = 'checkbox';
@@ -124,11 +125,22 @@ Tuntas L1+L2+L3 → Level 4</div><button class="btn btn-primary w-100 mt-3" oncl
         example.innerHTML = '<span class="bulb">💡</span> <strong>Contoh:</strong> ';
         example.appendChild(document.createTextNode(item.example));
         content.append(top, practice, example); label.append(cb, content);
-        cb.onchange = function () { answers[item.id] = cb.checked; label.classList.toggle('checked', cb.checked); };
-        box.appendChild(label);
+        cb.onchange = function () { answers[item.id] = cb.checked; label.classList.toggle('checked', cb.checked); updateLevelVisibility(); };
+        group.appendChild(label);
       });
+      box.appendChild(group);
     });
     tampil('page-evaluasi');
+  }
+  function updateLevelVisibility() {
+    let unlocked = true;
+    data.levels.forEach(function (level) {
+      const group = document.querySelector('.level-group[data-level="' + level.id + '"]');
+      if (!group) return;
+      group.classList.toggle('is-hidden', !unlocked);
+      const complete = data.items.filter(function (item) { return item.level === level.id; }).every(function (item) { return answers[item.id] === true; });
+      unlocked = unlocked && complete;
+    });
   }
   async function simpan() { const btn=document.getElementById('kirim');btn.disabled=true;document.getElementById('pesan').textContent='Menyimpan...';try{const response=await api('save',{data:{nama:user.nama,identitas:user.identitas,answers:answers}});renderHasil(response.result);tampil('page-hasil');}catch(e){document.getElementById('pesan').className='alert alert-danger';document.getElementById('pesan').textContent=e.message;}finally{btn.disabled=false;} }
   function renderHasil(result) { document.getElementById('hasil-nama').textContent = user.nama; document.getElementById('hasil-level').textContent = '🏆 Capaian: LEVEL ' + result.level; const box=document.getElementById('hasil-levels'); box.innerHTML=''; result.stats.forEach(function(stat){const level=data.levels.find(function(x){return x.id===stat.id;});const items=data.items.filter(function(x){return x.level===stat.id;});const card=document.createElement('div');card.className='result-card';card.style.borderLeftColor=level.color;const label=document.createElement('small');label.textContent='Level '+stat.id+' (item '+items[0].id+'-'+items[items.length-1].id+') — '+stat.percent+'%';const track=document.createElement('div');track.className='result-track';const fill=document.createElement('div');fill.className='result-fill';fill.style.width=stat.percent+'%';fill.style.background=level.color;track.appendChild(fill);const meta=document.createElement('div');meta.className='result-meta';meta.textContent=stat.checked+' dari '+stat.total+' terpenuhi';card.append(label,track,meta);box.appendChild(card);}); }
