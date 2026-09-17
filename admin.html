@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin — Evaluasi SAMR</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; padding:18px 12px; background:#495057; color:#17202a; font-family:Segoe UI,Arial,sans-serif; }
+    #app { max-width:900px; margin:auto; min-height:calc(100vh - 36px); background:#f8f9fa; border:8px solid #212529; border-radius:24px; overflow:hidden; box-shadow:0 0 30px #0008; }
+    header { background:linear-gradient(135deg,#4b00ff,#2700d9); color:#fff; padding:18px 22px; display:flex; justify-content:space-between; align-items:center; }
+    header h1 { font-size:1.25rem; margin:0; } header small { opacity:.85; }
+    main { padding:22px; } .card { background:#fff; border-radius:14px; padding:18px; box-shadow:0 2px 8px #0001; }
+    label { display:block; font-weight:600; margin-bottom:7px; } input { width:100%; padding:12px; border:1px solid #ced4da; border-radius:9px; font-size:1rem; }
+    button { border:0; border-radius:9px; padding:11px 16px; background:#4b00ff; color:#fff; font-weight:700; cursor:pointer; } button:disabled { opacity:.6; cursor:not-allowed; }
+    .danger { color:#a61b1b; background:#ffe1e5; padding:11px; border-radius:9px; margin-top:12px; } .hidden { display:none; }
+    .toolbar { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:15px; } .toolbar h2 { margin:0; font-size:1.2rem; }
+    .muted { color:#68737d; font-size:.9rem; } .summary { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:20px; }
+    .stat { background:#fff; border-radius:12px; padding:13px; border-left:4px solid #4b00ff; box-shadow:0 2px 6px #0001; } .stat b { display:block; font-size:1.4rem; }
+    .level-row { margin:12px 0; } .level-label { display:flex; justify-content:space-between; font-size:.85rem; margin-bottom:5px; }
+    .track { height:9px; background:#e9ecef; border-radius:10px; overflow:hidden; } .fill { height:100%; border-radius:10px; }
+    table { width:100%; border-collapse:collapse; background:#fff; font-size:.9rem; } th,td { text-align:left; padding:10px; border-bottom:1px solid #e9ecef; } th { background:#f1f3f5; }
+    .table-wrap { overflow-x:auto; } @media(max-width:600px){ .summary{grid-template-columns:repeat(2,1fr);} main{padding:14px;} }
+  </style>
+</head>
+<body>
+<div id="app">
+  <header><div><h1>Admin SAMR</h1><small>Dashboard Evaluasi</small></div><span aria-label="Admin">🔐</span></header>
+  <main>
+    <section id="login-card" class="card">
+      <h2>Login Admin</h2><p class="muted">Masukkan password admin untuk melihat rekap.</p>
+      <label for="password">Password Admin</label><input id="password" type="password" autocomplete="current-password">
+      <button id="login-button" style="width:100%;margin-top:15px;" onclick="login()">Masuk</button><div id="login-error" class="danger hidden"></div>
+    </section>
+    <section id="dashboard" class="hidden">
+      <div class="toolbar"><div><h2>Rekap Evaluasi</h2><span id="total" class="muted"></span></div><button onclick="logout()">Keluar</button></div>
+      <div id="summary" class="summary"></div><div class="card"><h3>Persentase Rata-rata per Level</h3><div id="levels"></div></div>
+      <h3>Daftar Responden</h3><div class="table-wrap"><table><thead><tr><th>Waktu</th><th>Nama</th><th>Identitas</th><th>Level</th><th>Nilai</th></tr></thead><tbody id="rows"></tbody></table></div>
+    </section>
+  </main>
+</div>
+<script>
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwubTEl_ARlSnOllw_FT8K-vBeT7Pv4T5f1kFD0cXXt-1EOeSXkEmDN7925gmLhaHVN/exec';
+  let adminPassword = '';
+  async function api(action, body) {
+    const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 20000);
+    try {
+      const response = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(Object.assign({action:action}, body || {})), signal:controller.signal });
+      const text = await response.text();
+      let json; try { json = JSON.parse(text); } catch (_) { throw new Error('Server mengirim halaman HTML. Deploy ulang SAMR.gs sebagai Web App.'); }
+      if (json && json.success === false) throw new Error(json.error || 'Permintaan gagal.'); return json;
+    } catch (error) { if (error.name === 'AbortError') throw new Error('Server tidak merespons dalam 20 detik.'); throw error; }
+    finally { clearTimeout(timer); }
+  }
+  async function login() { const button=document.getElementById('login-button'); const error=document.getElementById('login-error'); const password=document.getElementById('password').value; error.classList.add('hidden'); button.disabled=true; button.textContent='Memeriksa...'; try { await api('verify',{password:password}); adminPassword=password; const rows=await api('recap',{password:password}); render(rows); } catch(e) { error.textContent=e.message; error.classList.remove('hidden'); } finally { button.disabled=false; button.textContent='Masuk'; } }
+  function render(rows) { document.getElementById('login-card').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden'); document.getElementById('total').textContent='Total responden: '+rows.length; const summary=document.getElementById('summary'); summary.innerHTML=''; const levels=[1,2,3,4]; const colors=['#0d6efd','#198754','#ffc107','#dc3545']; levels.forEach((level,i)=>{const count=rows.filter(r=>r.level===level).length; const stat=document.createElement('div');stat.className='stat';stat.style.borderLeftColor=colors[i];stat.innerHTML='<span>Level '+level+'</span><b>'+count+'</b><span class="muted">responden</span>';summary.appendChild(stat);}); const levelBox=document.getElementById('levels');levelBox.innerHTML='';levels.forEach((level,i)=>{const current=rows.filter(r=>r.level===level);const percent=rows.length?Math.round(current.length/rows.length*100):0;const row=document.createElement('div');row.className='level-row';row.innerHTML='<div class="level-label"><span>Level '+level+'</span><b>'+percent+'%</b></div><div class="track"><div class="fill" style="width:'+percent+'%;background:'+colors[i]+'"></div></div>';levelBox.appendChild(row);});const tbody=document.getElementById('rows');tbody.innerHTML='';rows.forEach(r=>{const tr=document.createElement('tr');[r.timestamp,r.nama,r.identitas,'Level '+r.level,Math.round(r.percent)+'%'].forEach(value=>{const td=document.createElement('td');td.textContent=value;tr.appendChild(td);});tbody.appendChild(tr);}); }
+  function logout() { adminPassword=''; document.getElementById('password').value=''; document.getElementById('dashboard').classList.add('hidden'); document.getElementById('login-card').classList.remove('hidden'); }
+</script>
+</body>
+</html>
