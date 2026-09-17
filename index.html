@@ -8,11 +8,11 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <style>
     body { background:#495057; min-height:100vh; font-family:Segoe UI,Arial,sans-serif; padding:18px 0; }
-    #app { max-width:520px; min-height:calc(100vh - 36px); height:calc(100vh - 36px); margin:auto; background:#f8f9fa; border:8px solid #212529; border-radius:24px; overflow:hidden; box-shadow:0 0 30px #0008; display:flex; flex-direction:column; }
+    #app { max-width:520px; margin:auto; background:#f8f9fa; border:8px solid #212529; border-radius:24px; overflow:hidden; box-shadow:0 0 30px #0008; display:flex; flex-direction:column; }
     .app-header { background:linear-gradient(135deg,#4b00ff,#2700d9); color:#fff; padding:18px 20px; display:flex; align-items:center; justify-content:space-between; flex:0 0 auto; }
     .app-header h4 { font-weight:700; }
     .info-button { border:0; background:transparent; color:#fff; font-size:24px; line-height:1; cursor:pointer; padding:0 2px; }
-    .content { overflow-y:auto; flex:1; }
+    .content { overflow:visible; flex:none; }
     .info-modal { position:fixed; inset:0; z-index:20; display:none; align-items:center; justify-content:center; padding:20px; background:#0008; }
     .info-modal.show { display:flex; }
     .info-box { width:min(420px,100%); background:#fff; border-radius:18px; padding:22px; box-shadow:0 8px 30px #0005; white-space:pre-line; color:#334155; line-height:1.55; }
