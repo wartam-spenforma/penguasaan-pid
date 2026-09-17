@@ -93,7 +93,15 @@ Tuntas L1+L2+L3 → Level 4</div><button class="btn btn-primary w-100 mt-3" oncl
       const args = action === 'save' ? [body.data] : action === 'verify' ? [body.password] : [];
       return new Promise((resolve, reject) => google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[names[action]](...args));
     }
-    const res = await fetch(API_URL + (body ? '' : '?action=' + action), body ? { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(Object.assign({action:action}, body)) } : {});
+    const controller = new AbortController();
+    const timeout = setTimeout(function () { controller.abort(); }, 20000);
+    let res;
+    try {
+      res = await fetch(API_URL + (body ? '' : '?action=' + action), body ? { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(Object.assign({action:action}, body)), signal:controller.signal } : { signal:controller.signal });
+    } catch (error) {
+      if (error.name === 'AbortError') throw new Error('Server tidak merespons dalam 20 detik. Periksa deployment Web App.');
+      throw new Error('Koneksi ke Web App gagal. Pastikan akses deployment disetel Anyone.');
+    } finally { clearTimeout(timeout); }
     const json = await res.json();
     if (json && json.success === false) throw new Error(json.error || 'Permintaan gagal.');
     return json;
@@ -142,7 +150,7 @@ Tuntas L1+L2+L3 → Level 4</div><button class="btn btn-primary w-100 mt-3" oncl
       unlocked = unlocked && complete;
     });
   }
-  async function simpan() { const btn=document.getElementById('kirim');btn.disabled=true;document.getElementById('pesan').textContent='Menyimpan...';try{const response=await api('save',{data:{nama:user.nama,identitas:user.identitas,answers:answers}});renderHasil(response.result);tampil('page-hasil');}catch(e){document.getElementById('pesan').className='alert alert-danger';document.getElementById('pesan').textContent=e.message;}finally{btn.disabled=false;} }
+  async function simpan() { const btn=document.getElementById('kirim');btn.disabled=true;document.getElementById('pesan').className='alert alert-warning';document.getElementById('pesan').textContent='Menyimpan...';try{const response=await api('save',{data:{nama:user.nama,identitas:user.identitas,answers:answers}});document.getElementById('pesan').textContent='';renderHasil(response.result);tampil('page-hasil');}catch(e){document.getElementById('pesan').className='alert alert-danger';document.getElementById('pesan').textContent=e.message;}finally{btn.disabled=false;} }
   function renderHasil(result) { document.getElementById('hasil-nama').textContent = user.nama; document.getElementById('hasil-level').textContent = '🏆 Capaian: LEVEL ' + result.level; const box=document.getElementById('hasil-levels'); box.innerHTML=''; result.stats.forEach(function(stat){const level=data.levels.find(function(x){return x.id===stat.id;});const items=data.items.filter(function(x){return x.level===stat.id;});const card=document.createElement('div');card.className='result-card';card.style.borderLeftColor=level.color;const label=document.createElement('small');label.textContent='Level '+stat.id+' (item '+items[0].id+'-'+items[items.length-1].id+') — '+stat.percent+'%';const track=document.createElement('div');track.className='result-track';const fill=document.createElement('div');fill.className='result-fill';fill.style.width=stat.percent+'%';fill.style.background=level.color;track.appendChild(fill);const meta=document.createElement('div');meta.className='result-meta';meta.textContent=stat.checked+' dari '+stat.total+' terpenuhi';card.append(label,track,meta);box.appendChild(card);}); }
   function bukaLogin(){tampil('page-login');}
   async function login(){const p=document.getElementById('password').value;try{const r=await api('verify',{password:p});if(!r.success)throw new Error('Password salah.');const rows=await api('recap',{password:p});renderAdmin(rows);}catch(e){document.getElementById('login-pesan').className='alert alert-danger mt-3';document.getElementById('login-pesan').textContent=e.message;}}
