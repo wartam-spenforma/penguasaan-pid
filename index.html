@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Evaluasi SAMR</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <style>
+    body { background:#495057; min-height:100vh; font-family:Segoe UI,Arial,sans-serif; }
+    #app { max-width:480px; min-height:100vh; margin:auto; background:#f8f9fa; }
+    .app-header { background:linear-gradient(135deg,#0d6efd,#0b5ed7); color:#fff; padding:18px 20px; }
+    .content { padding:20px; }
+    .page { display:none; } .page.active { display:block; }
+    .check { background:#fff; border:1px solid #dee2e6; border-radius:12px; padding:13px 14px; margin:10px 0; display:flex; gap:11px; align-items:flex-start; box-shadow:0 1px 2px #00000008; cursor:pointer; }
+    .check.checked { background:#faf8ff; border-color:#d9ccff; }
+    .check input { width:24px; height:24px; flex:0 0 auto; margin-top:1px; accent-color:#5200ff; }
+    .check-content { min-width:0; flex:1; }
+    .check-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .check-title { color:#17202a; font-weight:700; font-size:1rem; }
+    .level-badge { color:#fff; border-radius:999px; padding:3px 9px; font-size:.72rem; font-weight:600; white-space:nowrap; }
+    .check-line { color:#6c757d; font-size:.82rem; line-height:1.35; margin-top:4px; }
+    .check-line strong { color:#58616b; }
+    .check-line .gear { color:#8b949e; } .check-line .bulb { color:#ffb900; }
+    .info-banner { background:#c8f4ff; border-radius:16px; padding:14px; color:#145267; font-size:.88rem; margin-bottom:15px; }
+    .result-head { text-align:center; padding:8px 0 18px; }
+    .result-icon { width:58px; height:58px; line-height:58px; margin:-28px auto 10px; border-radius:50%; background:#08a66a; color:#fff; font-size:32px; }
+    .result-title { font-weight:700; font-size:1.1rem; margin-bottom:4px; }
+    .result-badge { display:inline-block; background:#212529; color:#ffe600; border-radius:999px; padding:7px 14px; font-weight:700; font-size:.8rem; box-shadow:0 2px 5px #0003; }
+    .result-card { background:#fff; border-left:4px solid; border-radius:12px; padding:12px; margin:10px 0; box-shadow:0 2px 6px #00000012; }
+    .result-card small { color:#65717d; text-transform:uppercase; letter-spacing:.04em; }
+    .result-track { height:8px; background:#e9ecef; border-radius:10px; overflow:hidden; margin:8px 0 5px; }
+    .result-fill { height:100%; border-radius:10px; }
+    .result-meta { text-align:right; color:#65717d; font-size:.76rem; }
+    .level { color:#fff; border-radius:10px; padding:10px 12px; margin-top:20px; font-weight:700; }
+    .card { border:0; border-radius:14px; box-shadow:0 2px 8px #0001; }
+    .muted { color:#6c757d; font-size:.9rem; }
+  </style>
+</head>
+<body>
+<main id="app">
+  <header class="app-header"><h4 class="mb-1">Evaluasi SAMR</h4><small>Evaluasi pemanfaatan teknologi pembelajaran</small></header>
+  <section class="content">
+    <div id="loading" class="text-center py-5">Memuat aplikasi...</div>
+    <div id="page-identitas" class="page">
+      <div class="card p-3"><h5>Identitas Pengguna</h5><p class="muted">Pilih nama yang terdaftar.</p>
+        <select id="nama" class="form-select mb-3"><option value="">Pilih nama</option></select>
+        <input id="identitas" class="form-control mb-3" placeholder="Identitas/Kelas" readonly>
+        <button class="btn btn-primary w-100" onclick="mulai()">Mulai Evaluasi</button>
+        <button class="btn btn-link w-100 mt-2" onclick="bukaLogin()">Masuk sebagai Admin</button>
+      </div>
+    </div>
+    <div id="page-evaluasi" class="page"><div class="info-banner">ⓘ &nbsp;Centang indikator yang telah terpenuhi.</div><div id="checklist"></div>
+      <button id="kirim" class="btn btn-success w-100 mt-3" onclick="simpan()">Simpan Evaluasi</button>
+      <div id="pesan" class="mt-3"></div>
+    </div>
+    <div id="page-hasil" class="page"><div class="result-head"><div class="result-icon">✓</div><div class="result-title">Hasil Analisa</div><div class="muted" id="hasil-nama"></div><div class="mt-3"><span class="result-badge" id="hasil-level"></span></div></div><div id="hasil-levels"></div><button class="btn btn-primary w-100 mt-3" onclick="tampil('page-identitas')">Kembali ke Awal</button></div>
+    <div id="page-login" class="page"><div class="card p-3"><h5>Login Admin</h5>
+      <input id="password" type="password" class="form-control mb-3" placeholder="Password admin">
+      <button class="btn btn-primary w-100" onclick="login()">Masuk</button>
+      <button class="btn btn-link w-100" onclick="tampil('page-identitas')">Kembali</button><div id="login-pesan"></div>
+    </div></div>
+    <div id="page-admin" class="page"><div class="d-flex justify-content-between align-items-center"><h5>Rekap Evaluasi</h5><button class="btn btn-sm btn-outline-secondary" onclick="tampil('page-identitas')">Keluar</button></div>
+      <p id="total" class="muted"></p><canvas id="grafik" height="220"></canvas><div class="table-responsive mt-3"><table class="table table-sm"><thead><tr><th>Nama</th><th>Identitas</th><th>Level</th><th>Nilai</th></tr></thead><tbody id="rekap"></tbody></table></div>
+    </div>
+  </section>
+</main>
+<script>
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwubTEl_ARlSnOllw_FT8K-vBeT7Pv4T5f1kFD0cXXt-1EOeSXkEmDN7925gmLhaHVN/exec';
+  let data = { levels:[], items:[], identities:[] }, answers = {}, user = {}, chart;
+  function tampil(id) { document.querySelectorAll('.page').forEach(e => e.classList.remove('active')); document.getElementById(id).classList.add('active'); window.scrollTo(0,0); }
+  async function api(action, body) {
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      const names = { data:'getAppData', save:'saveResponse', verify:'verifyAdmin', recap:'getRecap' };
+      const args = action === 'save' ? [body.data] : action === 'verify' ? [body.password] : [];
+      return new Promise((resolve, reject) => google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[names[action]](...args));
+    }
+    const res = await fetch(API_URL + (body ? '' : '?action=' + action), body ? { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(Object.assign({action:action}, body)) } : {});
+    const json = await res.json();
+    if (json && json.success === false) throw new Error(json.error || 'Permintaan gagal.');
+    return json;
+  }
+  async function init() { try { data = await api('data'); const sel=document.getElementById('nama'); data.identities.forEach((x,i)=>{const o=document.createElement('option');o.value=i;o.textContent=x.nama;sel.appendChild(o);}); sel.onchange=()=>document.getElementById('identitas').value=sel.value===''?'':data.identities[sel.value].identitas; document.getElementById('loading').remove(); tampil('page-identitas'); } catch(e) { document.getElementById('loading').textContent=e.message; } }
+  function mulai() {
+    const i = document.getElementById('nama').value;
+    if (i === '') return alert('Pilih nama terlebih dahulu.');
+    user = data.identities[i]; answers = {};
+    const box = document.getElementById('checklist'); box.innerHTML = '';
+    data.levels.forEach(function (level) {
+      const heading = document.createElement('div'); heading.className = 'level';
+      heading.style.background = level.color; heading.textContent = 'Level ' + level.id + ' — ' + level.name;
+      box.appendChild(heading);
+      data.items.filter(function (item) { return item.level === level.id; }).forEach(function (item) {
+        const label = document.createElement('label'); label.className = 'check';
+        const cb = document.createElement('input'); cb.type = 'checkbox';
+        const content = document.createElement('div'); content.className = 'check-content';
+        const top = document.createElement('div'); top.className = 'check-top';
+        const title = document.createElement('span'); title.className = 'check-title';
+        title.textContent = item.id + '. ' + item.title;
+        const badge = document.createElement('span'); badge.className = 'level-badge';
+        badge.style.background = level.color; badge.textContent = 'Level ' + item.level;
+        top.append(title, badge);
+        const practice = document.createElement('div'); practice.className = 'check-line';
+        practice.innerHTML = '<span class="gear">⚙</span> <strong>Praktik:</strong> ';
+        practice.appendChild(document.createTextNode(item.practice));
+        const example = document.createElement('div'); example.className = 'check-line';
+        example.innerHTML = '<span class="bulb">💡</span> <strong>Contoh:</strong> ';
+        example.appendChild(document.createTextNode(item.example));
+        content.append(top, practice, example); label.append(cb, content);
+        cb.onchange = function () { answers[item.id] = cb.checked; label.classList.toggle('checked', cb.checked); };
+        box.appendChild(label);
+      });
+    });
+    tampil('page-evaluasi');
+  }
+  async function simpan() { const btn=document.getElementById('kirim');btn.disabled=true;document.getElementById('pesan').textContent='Menyimpan...';try{const response=await api('save',{data:{nama:user.nama,identitas:user.identitas,answers:answers}});renderHasil(response.result);tampil('page-hasil');}catch(e){document.getElementById('pesan').className='alert alert-danger';document.getElementById('pesan').textContent=e.message;}finally{btn.disabled=false;} }
+  function renderHasil(result) { document.getElementById('hasil-nama').textContent = user.nama; document.getElementById('hasil-level').textContent = '🏆 Capaian: LEVEL ' + result.level; const box=document.getElementById('hasil-levels'); box.innerHTML=''; result.stats.forEach(function(stat){const level=data.levels.find(function(x){return x.id===stat.id;});const card=document.createElement('div');card.className='result-card';card.style.borderLeftColor=level.color;const label=document.createElement('small');label.textContent='Level '+stat.id+' (item '+data.items.filter(function(x){return x.level===stat.id;})[0].id+'-'+data.items.filter(function(x){return x.level===stat.id;})[data.items.filter(function(x){return x.level===stat.id;}).length-1].id+')';const track=document.createElement('div');track.className='result-track';const fill=document.createElement('div');fill.className='result-fill';fill.style.width=stat.percent+'%';fill.style.background=level.color;track.appendChild(fill);const meta=document.createElement('div');meta.className='result-meta';meta.textContent=stat.checked+' dari '+stat.total+' terpenuhi';card.append(label,track,meta);box.appendChild(card);}); }
+  function bukaLogin(){tampil('page-login');}
+  async function login(){const p=document.getElementById('password').value;try{const r=await api('verify',{password:p});if(!r.success)throw new Error('Password salah.');const rows=await api('recap',{password:p});renderAdmin(rows);}catch(e){document.getElementById('login-pesan').className='alert alert-danger mt-3';document.getElementById('login-pesan').textContent=e.message;}}
+  function renderAdmin(rows){document.getElementById('total').textContent='Total responden: '+rows.length;const body=document.getElementById('rekap');body.innerHTML='';rows.forEach(r=>{const tr=document.createElement('tr');[r.nama,r.identitas,'Level '+r.level,Math.round(r.percent)+'%'].forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.appendChild(td);});body.appendChild(tr);});if(chart)chart.destroy();chart=new Chart(document.getElementById('grafik'),{type:'bar',data:{labels:data.levels.map(x=>'Level '+x.id),datasets:[{label:'Jumlah responden',data:data.levels.map(x=>rows.filter(r=>r.level===x.id).length),backgroundColor:data.levels.map(x=>x.color)}]},options:{responsive:true,scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});tampil('page-admin');}
+  init();
+</script>
+</body></html>
