@@ -7,9 +7,16 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <style>
-    body { background:#495057; min-height:100vh; font-family:Segoe UI,Arial,sans-serif; }
-    #app { max-width:480px; min-height:100vh; margin:auto; background:#f8f9fa; }
-    .app-header { background:linear-gradient(135deg,#0d6efd,#0b5ed7); color:#fff; padding:18px 20px; }
+    body { background:#495057; min-height:100vh; font-family:Segoe UI,Arial,sans-serif; padding:18px 0; }
+    #app { max-width:520px; min-height:calc(100vh - 36px); height:calc(100vh - 36px); margin:auto; background:#f8f9fa; border:8px solid #212529; border-radius:24px; overflow:hidden; box-shadow:0 0 30px #0008; display:flex; flex-direction:column; }
+    .app-header { background:linear-gradient(135deg,#4b00ff,#2700d9); color:#fff; padding:18px 20px; display:flex; align-items:center; justify-content:space-between; flex:0 0 auto; }
+    .app-header h4 { font-weight:700; }
+    .info-button { border:0; background:transparent; color:#fff; font-size:24px; line-height:1; cursor:pointer; padding:0 2px; }
+    .content { overflow-y:auto; flex:1; }
+    .info-modal { position:fixed; inset:0; z-index:20; display:none; align-items:center; justify-content:center; padding:20px; background:#0008; }
+    .info-modal.show { display:flex; }
+    .info-box { width:min(420px,100%); background:#fff; border-radius:18px; padding:22px; box-shadow:0 8px 30px #0005; white-space:pre-line; color:#334155; line-height:1.55; }
+    .info-box h5 { color:#1e293b; font-weight:700; }
     .content { padding:20px; }
     .page { display:none; } .page.active { display:block; }
     .check { background:#fff; border:1px solid #dee2e6; border-radius:12px; padding:13px 14px; margin:10px 0; display:flex; gap:11px; align-items:flex-start; box-shadow:0 1px 2px #00000008; cursor:pointer; }
@@ -39,7 +46,7 @@
 </head>
 <body>
 <main id="app">
-  <header class="app-header"><h4 class="mb-1">Evaluasi SAMR</h4><small>Evaluasi pemanfaatan teknologi pembelajaran</small></header>
+  <header class="app-header"><h4 class="mb-0">SAMR App</h4><button class="info-button" aria-label="Info aplikasi" onclick="bukaInfo()">ⓘ</button></header>
   <section class="content">
     <div id="loading" class="text-center py-5">Memuat aplikasi...</div>
     <div id="page-identitas" class="page">
@@ -65,10 +72,20 @@
     </div>
   </section>
 </main>
+<div id="info-modal" class="info-modal" onclick="tutupInfo(event)"><div class="info-box"><h5>Info Aplikasi</h5><div>SAMR App dirancang sebagai Web App untuk kebutuhan administrasi digital.
+
+<b>Logika Perhitungan Level Akhir:</b>
+
+Belum tuntas L1 (1-6) → Level 1
+Tuntas L1, belum L2 (7-13) → Level 2
+Tuntas L1+L2, belum L3 (14-18) → Level 3
+Tuntas L1+L2+L3 → Level 4</div><button class="btn btn-primary w-100 mt-3" onclick="tutupInfo()">Tutup</button></div></div>
 <script>
   const API_URL = 'https://script.google.com/macros/s/AKfycbwubTEl_ARlSnOllw_FT8K-vBeT7Pv4T5f1kFD0cXXt-1EOeSXkEmDN7925gmLhaHVN/exec';
   let data = { levels:[], items:[], identities:[] }, answers = {}, user = {}, chart;
   function tampil(id) { document.querySelectorAll('.page').forEach(e => e.classList.remove('active')); document.getElementById(id).classList.add('active'); window.scrollTo(0,0); }
+  function bukaInfo() { document.getElementById('info-modal').classList.add('show'); }
+  function tutupInfo(event) { if (!event || event.target.id === 'info-modal' || event.target.tagName === 'BUTTON') document.getElementById('info-modal').classList.remove('show'); }
   async function api(action, body) {
     if (typeof google !== 'undefined' && google.script && google.script.run) {
       const names = { data:'getAppData', save:'saveResponse', verify:'verifyAdmin', recap:'getRecap' };
@@ -114,7 +131,7 @@
     tampil('page-evaluasi');
   }
   async function simpan() { const btn=document.getElementById('kirim');btn.disabled=true;document.getElementById('pesan').textContent='Menyimpan...';try{const response=await api('save',{data:{nama:user.nama,identitas:user.identitas,answers:answers}});renderHasil(response.result);tampil('page-hasil');}catch(e){document.getElementById('pesan').className='alert alert-danger';document.getElementById('pesan').textContent=e.message;}finally{btn.disabled=false;} }
-  function renderHasil(result) { document.getElementById('hasil-nama').textContent = user.nama; document.getElementById('hasil-level').textContent = '🏆 Capaian: LEVEL ' + result.level; const box=document.getElementById('hasil-levels'); box.innerHTML=''; result.stats.forEach(function(stat){const level=data.levels.find(function(x){return x.id===stat.id;});const card=document.createElement('div');card.className='result-card';card.style.borderLeftColor=level.color;const label=document.createElement('small');label.textContent='Level '+stat.id+' (item '+data.items.filter(function(x){return x.level===stat.id;})[0].id+'-'+data.items.filter(function(x){return x.level===stat.id;})[data.items.filter(function(x){return x.level===stat.id;}).length-1].id+')';const track=document.createElement('div');track.className='result-track';const fill=document.createElement('div');fill.className='result-fill';fill.style.width=stat.percent+'%';fill.style.background=level.color;track.appendChild(fill);const meta=document.createElement('div');meta.className='result-meta';meta.textContent=stat.checked+' dari '+stat.total+' terpenuhi';card.append(label,track,meta);box.appendChild(card);}); }
+  function renderHasil(result) { document.getElementById('hasil-nama').textContent = user.nama; document.getElementById('hasil-level').textContent = '🏆 Capaian: LEVEL ' + result.level; const box=document.getElementById('hasil-levels'); box.innerHTML=''; result.stats.forEach(function(stat){const level=data.levels.find(function(x){return x.id===stat.id;});const items=data.items.filter(function(x){return x.level===stat.id;});const card=document.createElement('div');card.className='result-card';card.style.borderLeftColor=level.color;const label=document.createElement('small');label.textContent='Level '+stat.id+' (item '+items[0].id+'-'+items[items.length-1].id+') — '+stat.percent+'%';const track=document.createElement('div');track.className='result-track';const fill=document.createElement('div');fill.className='result-fill';fill.style.width=stat.percent+'%';fill.style.background=level.color;track.appendChild(fill);const meta=document.createElement('div');meta.className='result-meta';meta.textContent=stat.checked+' dari '+stat.total+' terpenuhi';card.append(label,track,meta);box.appendChild(card);}); }
   function bukaLogin(){tampil('page-login');}
   async function login(){const p=document.getElementById('password').value;try{const r=await api('verify',{password:p});if(!r.success)throw new Error('Password salah.');const rows=await api('recap',{password:p});renderAdmin(rows);}catch(e){document.getElementById('login-pesan').className='alert alert-danger mt-3';document.getElementById('login-pesan').textContent=e.message;}}
   function renderAdmin(rows){document.getElementById('total').textContent='Total responden: '+rows.length;const body=document.getElementById('rekap');body.innerHTML='';rows.forEach(r=>{const tr=document.createElement('tr');[r.nama,r.identitas,'Level '+r.level,Math.round(r.percent)+'%'].forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.appendChild(td);});body.appendChild(tr);});if(chart)chart.destroy();chart=new Chart(document.getElementById('grafik'),{type:'bar',data:{labels:data.levels.map(x=>'Level '+x.id),datasets:[{label:'Jumlah responden',data:data.levels.map(x=>rows.filter(r=>r.level===x.id).length),backgroundColor:data.levels.map(x=>x.color)}]},options:{responsive:true,scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});tampil('page-admin');}
